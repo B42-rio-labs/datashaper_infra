@@ -19,7 +19,6 @@ O projeto sobe os seguintes serviços:
 - 80: Nginx.
 - 6380: acesso TCP ao RabbitMQ através do proxy do Nginx.
 - 5433: acesso TCP ao PostgreSQL através do proxy do Nginx.
-- 15672: interface web de administração do RabbitMQ.
 
 ### Fluxo de rede
 
@@ -88,7 +87,7 @@ docker compose ps
 Abra a interface de administração em:
 
 ```text
-http://localhost:15672
+http://localhost/rabbitmq/
 ```
 
 Use as credenciais do admin definidas em .env.
@@ -119,7 +118,7 @@ Configurações atuais:
 - Management UI em 15672.
 - log em console habilitado.
 
-O proxy Nginx expõe o RabbitMQ na porta 6380 para clientes que precisem conectar via TCP externo.
+O proxy Nginx expõe o RabbitMQ na porta 6380 para clientes TCP e também publica o painel web em /rabbitmq/.
 
 ## Observações
 
