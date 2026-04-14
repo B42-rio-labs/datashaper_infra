@@ -10,7 +10,7 @@ O projeto sobe os seguintes serviços:
 
 - Nginx para proxy TCP das conexões do RabbitMQ e do PostgreSQL.
 - RabbitMQ com Management UI para filas, exchanges, usuários e permissões.
-- PostgreSQL com banco inicial e script de bootstrap.
+- PostgreSQL com criação padrão via variáveis de ambiente.
 
 ## Arquitetura
 
@@ -32,7 +32,6 @@ As aplicações externas podem falar com o Nginx nas portas 6380 e 5433, e o Ngi
 - docker-compose.yml: define os serviços da stack.
 - nginx/nginx.conf: configuração do proxy TCP para RabbitMQ e PostgreSQL.
 - rabbitmq/rabbitmq.conf: configurações básicas do broker RabbitMQ.
-- init/init.sql: script inicial do PostgreSQL.
 - setup.sh: cria a rede externa usada pelo compose.
 - .env.example: variáveis de ambiente de exemplo.
 
@@ -104,9 +103,9 @@ Isso pode ser feito sem reiniciar a aplicação ou o broker.
 
 ## PostgreSQL inicial
 
-O diretório init contém o script que cria o banco, o usuário e as permissões iniciais.
+O PostgreSQL é inicializado apenas com as variáveis `POSTGRES_USER`, `POSTGRES_PASSWORD` e `POSTGRES_DB`, sem scripts adicionais de bootstrap.
 
-Se o volume postgres_data já existir, o script de inicialização pode não rodar novamente. Nesse caso, recrie o volume ou aplique as alterações manualmente.
+Com isso, o usuário admin definido em `.env` é o único usuário criado automaticamente pela stack.
 
 ## RabbitMQ
 
