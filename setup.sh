@@ -1,1 +1,1 @@
-docker network create ngix
+docker network create nginx

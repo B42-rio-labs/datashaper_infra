@@ -14,19 +14,26 @@ services:
     networks:
       - nginx
     depends_on:
-      - redis
+      - rabbitmq
       - postgres
 
-
-  redis:
-    image: redis:7
-    container_name: nginx_redis
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: nginx_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_ADMIN_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_ADMIN_PASS}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_DEFAULT_VHOST}
     volumes:
-      - ./redis/redis.conf:/usr/local/etc/redis/redis.conf
-      - ./redis/users.acl:/usr/local/etc/redis/users.acl
-    command: redis-server /usr/local/etc/redis/redis.conf    
-      #ports:
-      #- "6379:6379"
+      - ./rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    ports:
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - nginx
 
