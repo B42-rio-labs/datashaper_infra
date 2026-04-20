@@ -25,15 +25,20 @@ jobs:
           # Sobe apenas os serviços de base (ignora o nginx que depende de upstreams externos)
           docker compose up -d postgres rabbitmq
           echo "Aguardando serviços de base ficarem prontos (healthcheck)..."
+          
+          # Tentativas de verificação de saúde (total 60 segundos)
           for i in {1..12}; do
-            if [ "$(docker compose ps --filter "status=running" --filter "health=healthy" -q | wc -l)" == "2" ]; then
+            # Usando grep para capturar "(healthy)" de forma mais compatível entre versões
+            HEALTHY_COUNT=$(docker compose ps | grep -c "(healthy)" || true)
+            if [ "$HEALTHY_COUNT" == "2" ]; then
               echo "Infraestrutura básica saudável!"
               exit 0
             fi
-            echo "Aguardando Postgres e RabbitMQ... ($((i*5))s)"
+            echo "Aguardando Postgres e RabbitMQ ($HEALTHY_COUNT/2 saudáveis)... ($((i*5))s)"
             sleep 5
           done
-          echo "Erro: A infraestrutura básica não subiu corretamente."
+          
+          echo "Erro: A infraestrutura básica não subiu corretamente ou o healthcheck falhou."
           docker compose ps
           docker compose logs
           exit 1
