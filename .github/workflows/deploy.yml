@@ -1,0 +1,74 @@
+name: CI/CD Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          sh setup.sh
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Smoke Test - Spin up stack
+        run: |
+          docker compose up -d
+          echo "Aguardando serviços ficarem prontos (healthcheck)..."
+          # Aguarda até que os containers estejam saudáveis ou timeout de 60s
+          for i in {1..12}; do
+            if [ "$(docker compose ps --filter "status=running" --filter "health=healthy" -q | wc -l)" == "2" ]; then
+              echo "Serviços saudáveis!"
+              exit 0
+            fi
+            echo "Ainda aguardando... ($((i*5))s)"
+            sleep 5
+          done
+          echo "Erro: Os serviços não ficaram saudáveis a tempo."
+          docker compose ps
+          docker compose logs
+          exit 1
+
+      - name: Check Nginx Response
+        run: |
+          # O Nginx não tem healthcheck nativo configurado, mas podemos checar se ele responde
+          sleep 2
+          curl -sI http://localhost | grep "HTTP/1.1"
+
+      - name: Shutdown test environment
+        if: always()
+        run: docker compose down
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd ${{ secrets.PATH }}
+            git pull origin main
+            # Garante que a rede externa exista
+            sh setup.sh || true
+            # Sobe os containers (aplica mudanças estruturais se houver)
+            docker compose up -d
+            # Reinicia especificamente o Nginx para ler as novas configurações (volumes)
+            echo "Reiniciando Nginx..."
+            docker compose restart nginx
+            # Verifica se os containers estão rodando
+            echo "Verificando containers..."
+            docker compose ps
