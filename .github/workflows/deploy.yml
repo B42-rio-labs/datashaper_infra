@@ -20,29 +20,23 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose config
 
-      - name: Smoke Test - Spin up stack
+      - name: Smoke Test - Spin up infrastructure
         run: |
-          docker compose up -d
-          echo "Aguardando serviços ficarem prontos (healthcheck)..."
-          # Aguarda até que os containers estejam saudáveis ou timeout de 60s
+          # Sobe apenas os serviços de base (ignora o nginx que depende de upstreams externos)
+          docker compose up -d postgres rabbitmq
+          echo "Aguardando serviços de base ficarem prontos (healthcheck)..."
           for i in {1..12}; do
             if [ "$(docker compose ps --filter "status=running" --filter "health=healthy" -q | wc -l)" == "2" ]; then
-              echo "Serviços saudáveis!"
+              echo "Infraestrutura básica saudável!"
               exit 0
             fi
-            echo "Ainda aguardando... ($((i*5))s)"
+            echo "Aguardando Postgres e RabbitMQ... ($((i*5))s)"
             sleep 5
           done
-          echo "Erro: Os serviços não ficaram saudáveis a tempo."
+          echo "Erro: A infraestrutura básica não subiu corretamente."
           docker compose ps
           docker compose logs
           exit 1
-
-      - name: Check Nginx Response
-        run: |
-          # O Nginx não tem healthcheck nativo configurado, mas podemos checar se ele responde
-          sleep 2
-          curl -sI http://localhost | grep "HTTP/1.1"
 
       - name: Shutdown test environment
         if: always()
