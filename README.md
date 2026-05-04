@@ -1,6 +1,6 @@
 # VPS Infra Base
 
-Base de infraestrutura local com Nginx como proxy TCP, PostgreSQL e RabbitMQ.
+Base de infraestrutura local com Nginx como proxy TCP, PostgreSQL, RabbitMQ e monitoramento de debug.
 
 O objetivo deste projeto é fornecer uma stack simples para subir os serviços essenciais de uma aplicação em um servidor ou ambiente local, com portas e configurações padronizadas.
 
@@ -11,6 +11,8 @@ O projeto sobe os seguintes serviços:
 - Nginx para proxy TCP das conexões do RabbitMQ e do PostgreSQL.
 - RabbitMQ com Management UI para filas, exchanges, usuários e permissões.
 - PostgreSQL com criação padrão via variáveis de ambiente.
+- Grafana com Loki/Promtail para logs de containers.
+- Prometheus com cAdvisor para pacotes e tráfego de rede dos containers.
 
 ## Arquitetura
 
@@ -19,6 +21,7 @@ O projeto sobe os seguintes serviços:
 - 80: Nginx.
 - 6380: acesso TCP ao RabbitMQ através do proxy do Nginx.
 - 5433: acesso TCP ao PostgreSQL através do proxy do Nginx.
+- /grafana/: Grafana via Nginx para debug de logs e métricas dos containers.
 
 ### Fluxo de rede
 
@@ -27,23 +30,27 @@ As aplicações externas podem falar com o Nginx nas portas 6380 e 5433, e o Ngi
 - RabbitMQ em nginx_rabbitmq:5672.
 - PostgreSQL em nginx_postgres:5432.
 
+O monitoramento roda em uma rede Docker externa interna chamada `debug`. Essa rede isola o tráfego entre Grafana, Loki, Promtail, Prometheus e cAdvisor da rede de aplicação `nginx`, mas permite que outros projetos Docker Compose entrem nela explicitamente para expor logs e métricas ao debug. O Nginx também entra nessa rede para publicar apenas a rota `/grafana/`.
+
 ## Estrutura do projeto
 
 - docker-compose.yml: define os serviços da stack.
+- monitoring/: configura Grafana, Loki, Promtail, Prometheus e dashboards.
 - nginx/nginx.conf: configuração do proxy TCP para RabbitMQ e PostgreSQL.
 - rabbitmq/rabbitmq.conf: configurações básicas do broker RabbitMQ.
-- setup.sh: cria a rede externa usada pelo compose.
+- setup.sh: cria as redes externas usadas pelo compose.
 - .env.example: variáveis de ambiente de exemplo.
 
 ## Requisitos
 
 - Docker e Docker Compose.
 - Rede Docker externa chamada nginx.
+- Rede Docker externa interna chamada debug.
 
-Para criar a rede:
+Para criar as redes:
 
 ```bash
-docker network create nginx
+sh setup.sh
 ```
 
 ## Configuração
@@ -58,6 +65,9 @@ Variáveis disponíveis:
 - RABBITMQ_ADMIN_USER: usuário administrador do RabbitMQ.
 - RABBITMQ_ADMIN_PASS: senha do administrador do RabbitMQ.
 - RABBITMQ_DEFAULT_VHOST: vhost inicial do RabbitMQ.
+- GRAFANA_ADMIN_USER: usuário administrador do Grafana.
+- GRAFANA_ADMIN_PASSWORD: senha do administrador do Grafana.
+- GRAFANA_ROOT_URL: URL pública do Grafana quando acessado via Nginx.
 
 ## Como subir a stack
 
@@ -91,6 +101,23 @@ http://localhost/rabbitmq/
 
 Use as credenciais do admin definidas em .env.
 
+## Acesso ao Grafana
+
+Abra o painel em:
+
+```text
+http://localhost/grafana/
+```
+
+Use as credenciais `GRAFANA_ADMIN_USER` e `GRAFANA_ADMIN_PASSWORD` definidas em `.env`.
+
+O Grafana já sobe com dois datasources provisionados:
+
+- Loki: logs dos containers Docker coletados pelo Promtail.
+- Prometheus: métricas do cAdvisor, incluindo pacotes e tráfego de rede por container.
+
+O dashboard `Container Debug` é provisionado automaticamente com painéis de logs, pacotes de rede e throughput dos containers.
+
 ### Criar usuários de aplicação
 
 Os usuários de aplicação não são criados automaticamente. O fluxo esperado é:
@@ -122,6 +149,7 @@ O proxy Nginx expõe o RabbitMQ na porta 6380 para clientes TCP e também public
 ## Observações
 
 - O Nginx precisa da rede externa nginx para conseguir resolver os nomes dos containers.
+- A rede debug é externa, interna e criada pelo `setup.sh`.
 - O banco PostgreSQL está configurado para persistir dados em um volume nomeado.
 - O projeto foi organizado para facilitar a expansão futura com novos serviços e ambientes.
 
@@ -129,4 +157,5 @@ O proxy Nginx expõe o RabbitMQ na porta 6380 para clientes TCP e também public
 
 - Ajustar permissões e vhosts do RabbitMQ para cada aplicação.
 - Criar um arquivo de produção separado para variáveis sensíveis.
-- Adicionar monitoramento e backup do PostgreSQL.
+- Adicionar alertas no Grafana para falhas de serviços e picos de tráfego.
+- Adicionar backup do PostgreSQL.
