@@ -106,7 +106,7 @@ Use as credenciais do admin definidas em .env.
 Abra o painel em:
 
 ```text
-http://localhost:8080/grafana/
+http://localhost/grafana/
 ```
 
 Use as credenciais `GRAFANA_ADMIN_USER` e `GRAFANA_ADMIN_PASSWORD` definidas em `.env`.
