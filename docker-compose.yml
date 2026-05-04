@@ -4,7 +4,7 @@ services:
     container_name: nginx_proxy
     restart: always
     ports:
-      - "8080:80"
+      - "${NGINX_HTTP_PORT:-80}:80"
       - "6380:6380"
       - "5433:5433"
     volumes:
