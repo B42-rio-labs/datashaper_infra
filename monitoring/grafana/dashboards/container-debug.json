@@ -16,6 +16,388 @@
       },
       "fieldConfig": {
         "defaults": {
+          "links": [
+            {
+              "title": "Monitor container",
+              "url": "?var-debug_container=${__data.fields.name}&from=${__from}&to=${__to}"
+            }
+          ],
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "Containers in Debug Network",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "container_label_com_docker_compose_config_hash": true,
+              "container_label_com_docker_compose_container_number": true,
+              "container_label_com_docker_compose_depends_on": true,
+              "container_label_com_docker_compose_image": true,
+              "container_label_com_docker_compose_oneoff": true,
+              "container_label_com_docker_compose_project_config_files": true,
+              "container_label_com_docker_compose_project_working_dir": true,
+              "container_label_com_docker_compose_replace": true,
+              "container_label_com_docker_compose_service": true,
+              "container_label_com_docker_compose_version": true,
+              "id": true,
+              "image": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "name": 0,
+              "network": 1,
+              "Value": 2
+            },
+            "renameByName": {
+              "Value": "connected"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "id"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Inspect flow",
+                    "url": "/grafana/d/container-debug/container-debug?orgId=1&var-flow_source=${__data.fields[\"source\"]}&var-flow_target=${__data.fields[\"target\"]}&from=${__from}&to=${__to}"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "id": 5,
+      "options": {
+        "edges": {
+          "arrows": true
+        },
+        "nodes": {
+          "arcSections": [],
+          "mainStatUnit": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "docker_container_graph_node_info{id!~\"debug_.*\", id=~\"${debug_container:regex}\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "docker_container_packet_flow_packets{source=~\"${debug_container:regex}\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "Container Graph on Debug Network",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": false,
+              "container_label_com_docker_compose_config_hash": true,
+              "container_label_com_docker_compose_container_number": true,
+              "container_label_com_docker_compose_depends_on": true,
+              "container_label_com_docker_compose_image": true,
+              "container_label_com_docker_compose_oneoff": true,
+              "container_label_com_docker_compose_project_config_files": true,
+              "container_label_com_docker_compose_project_working_dir": true,
+              "container_label_com_docker_compose_replace": true,
+              "container_label_com_docker_compose_service": true,
+              "container_label_com_docker_compose_version": true,
+              "id": false,
+              "image": true,
+              "instance": true,
+              "job": true,
+              "network": true,
+              "src_ip": true,
+              "dst_ip": true
+            },
+            "indexByName": {
+              "Value": 5,
+              "Value #A": 5,
+              "Value #B": 5,
+              "id": 0,
+              "source": 3,
+              "subtitle": 2,
+              "target": 4,
+              "title": 1
+            },
+            "renameByName": {
+              "Value": "mainstat",
+              "Value #A": "mainstat",
+              "Value #B": "mainstat"
+            }
+          }
+        }
+      ],
+      "type": "nodeGraph"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "id": 6,
+      "options": {
+        "showHeader": true,
+        "sortBy": []
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "docker_container_packet_direction_packets{sender=~\"${flow_source:raw}\", receiver=~\"${flow_target:raw}\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "docker_container_packet_direction_packets{sender=~\"${flow_target:raw}\", receiver=~\"${flow_source:raw}\"}",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "B"
+        }
+      ],
+      "title": "Selected Flow Packet Counts",
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {
+              "sender": 0,
+              "receiver": 1,
+              "src_ip": 2,
+              "dst_ip": 3,
+              "Value": 4,
+              "Value #A": 4,
+              "Value #B": 4
+            },
+            "renameByName": {
+              "Value": "packets_15m",
+              "Value #A": "packets_15m",
+              "Value #B": "packets_15m"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "id": 8,
+      "options": {
+        "displayMode": "gradient",
+        "maxVizHeight": 300,
+        "minVizHeight": 16,
+        "minVizWidth": 8,
+        "namePlacement": "left",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showUnfilled": true,
+        "sizing": "auto",
+        "valueMode": "color"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          },
+          "expr": "sum by (status) (count_over_time({container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${debug_container_ip:raw}(:[0-9]+)?\"}[15m]))",
+          "legendFormat": "HTTP {{status}}",
+          "queryType": "instant",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Status Codes for Selected Container",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "Prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
           "color": {
             "mode": "palette-classic"
           },
@@ -69,9 +451,9 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 19
       },
-      "id": 1,
+      "id": 2,
       "options": {
         "legend": {
           "calcs": [
@@ -93,7 +475,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_receive_packets_total{name!=\"\"}[5m]))",
+          "expr": "sum by (name) (rate(container_network_receive_packets_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
           "legendFormat": "{{name}} rx",
           "range": true,
           "refId": "A"
@@ -104,13 +486,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_transmit_packets_total{name!=\"\"}[5m]))",
+          "expr": "sum by (name) (rate(container_network_transmit_packets_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
           "legendFormat": "{{name}} tx",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Container Network Packets",
+      "title": "Application Packets on Debug Network",
       "type": "timeseries"
     },
     {
@@ -173,9 +555,9 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 19
       },
-      "id": 2,
+      "id": 3,
       "options": {
         "legend": {
           "calcs": [
@@ -197,7 +579,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name!=\"\"}[5m]))",
+          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
           "legendFormat": "{{name}} rx",
           "range": true,
           "refId": "A"
@@ -208,13 +590,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_transmit_bytes_total{name!=\"\"}[5m]))",
+          "expr": "sum by (name) (rate(container_network_transmit_bytes_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
           "legendFormat": "{{name}} tx",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Container Network Throughput",
+      "title": "Application Throughput on Debug Network",
       "type": "timeseries"
     },
     {
@@ -226,9 +608,9 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 27
       },
-      "id": 3,
+      "id": 4,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
@@ -245,12 +627,84 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{job=\"docker-containers\"}",
+          "expr": "{job=\"docker-containers\", docker_network=\"debug\", container!~\"debug_.*\", container=~\"${debug_container:regex}\"}",
           "queryType": "range",
           "refId": "A"
         }
       ],
-      "title": "Container Logs",
+      "title": "Application Logs on Debug Network",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 41
+      },
+      "id": 7,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          },
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | line_format \"{{.time}} {{.method}} {{.uri}} status={{.status}} upstream_status={{.upstream_status}} request_body={{.request_body}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Selected Flow HTTP Requests",
+      "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "loki",
+        "uid": "Loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 41
+      },
+      "id": 9,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "loki",
+            "uid": "Loki"
+          },
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | line_format \"{{.time}} {{.method}} {{.uri}} status={{.status}} upstream_status={{.upstream_status}} request_time={{.request_time}} upstream_response_time={{.upstream_response_time}}\"",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Selected Flow HTTP Responses",
       "type": "logs"
     }
   ],
@@ -263,7 +717,144 @@
     "network"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "Prometheus"
+        },
+        "definition": "label_values(docker_container_network_info{network=\"debug\", name!~\"debug_.*\"}, name)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "debug_container",
+        "options": [],
+        "query": {
+          "query": "label_values(docker_container_network_info{network=\"debug\", name!~\"debug_.*\"}, name)",
+          "refId": "PrometheusVariableQueryEditor-0"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "Prometheus"
+        },
+        "definition": "label_values(docker_container_network_address_info{name=~\"${debug_container:regex}\"}, ipv4)",
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "debug_container_ip",
+        "options": [],
+        "query": {
+          "query": "label_values(docker_container_network_address_info{name=~\"${debug_container:regex}\"}, ipv4)",
+          "refId": "PrometheusVariableQueryEditor-1"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0,
+        "label": "Flow source",
+        "name": "flow_source",
+        "options": [],
+        "query": ".*",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": ".*",
+          "value": ".*"
+        },
+        "hide": 0,
+        "label": "Flow target",
+        "name": "flow_target",
+        "options": [],
+        "query": ".*",
+        "skipUrlSync": false,
+        "type": "textbox"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "Prometheus"
+        },
+        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:raw}\", target=~\"${flow_target:raw}\"}, src_ip)",
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "flow_src_ip",
+        "options": [],
+        "query": {
+          "query": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:raw}\", target=~\"${flow_target:raw}\"}, src_ip)",
+          "refId": "PrometheusVariableQueryEditor-2"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "Prometheus"
+        },
+        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:raw}\", target=~\"${flow_target:raw}\"}, dst_ip)",
+        "hide": 2,
+        "includeAll": true,
+        "multi": true,
+        "name": "flow_dst_ip",
+        "options": [],
+        "query": {
+          "query": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:raw}\", target=~\"${flow_target:raw}\"}, dst_ip)",
+          "refId": "PrometheusVariableQueryEditor-3"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": true,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -273,6 +864,6 @@
   "timezone": "browser",
   "title": "Container Debug",
   "uid": "container-debug",
-  "version": 1,
+  "version": 16,
   "weekStart": ""
 }
