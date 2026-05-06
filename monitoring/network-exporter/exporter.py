@@ -192,6 +192,10 @@ def collect_metrics() -> str:
             'docker_container_network_info{id="%s",name="%s",network="%s",ipv4="%s"} 1'
             % (escape_label(container_id), escape_label(name), escape_label(NETWORK_NAME), escape_label(ipv4))
         )
+        lines.append(
+            'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s"} 25'
+            % (escape_label(name), escape_label(name), escape_label(NETWORK_NAME))
+        )
         details = docker_get(f"/containers/{container_id}/json")
         service_ports[name] = exposed_ports(details)
         networks = details.get("NetworkSettings", {}).get("Networks", {})
@@ -225,10 +229,6 @@ def collect_metrics() -> str:
         directional_flows = defaultdict(float)
         sent_packets = defaultdict(float)
         received_packets = defaultdict(float)
-        container_sent_totals = defaultdict(float)
-        container_received_totals = defaultdict(float)
-        container_active_totals = defaultdict(set)
-        container_persistent_totals = defaultdict(set)
         edge_packets = defaultdict(float)
         edge_tcp_connections = defaultdict(set)
         edge_http_requests = defaultdict(float)
@@ -259,14 +259,11 @@ def collect_metrics() -> str:
                 peer_kind = dst_endpoint["kind"]
                 sent_key = (container, peer, peer_kind, dst_endpoint["ip"], dst_endpoint["port"])
                 sent_packets[sent_key] += value
-                container_sent_totals[container] += value
                 conn_key = (container, peer, peer_kind, "sent")
                 connection_key = f"{src_ip}:{src_port or '0'}|{dst_ip}:{dst_port or '0'}"
                 active_connections[conn_key].add(connection_key)
-                container_active_totals[container].add(connection_key)
                 if value > 1:
                     persistent_connections[conn_key].add(connection_key)
-                    container_persistent_totals[container].add(connection_key)
 
             if dst_endpoint["kind"] == "container":
                 container = dst_endpoint["label"]
@@ -274,14 +271,11 @@ def collect_metrics() -> str:
                 peer_kind = src_endpoint["kind"]
                 received_key = (container, peer, peer_kind, src_endpoint["ip"], src_endpoint["port"])
                 received_packets[received_key] += value
-                container_received_totals[container] += value
                 conn_key = (container, peer, peer_kind, "received")
                 connection_key = f"{src_ip}:{src_port or '0'}|{dst_ip}:{dst_port or '0'}"
                 active_connections[conn_key].add(connection_key)
-                container_active_totals[container].add(connection_key)
                 if value > 1:
                     persistent_connections[conn_key].add(connection_key)
-                    container_persistent_totals[container].add(connection_key)
 
             sender = src_endpoint["name"] or src_endpoint["ip"]
             receiver = dst_endpoint["name"] or dst_endpoint["ip"]
@@ -311,26 +305,6 @@ def collect_metrics() -> str:
             source = "nginx_proxy"
             target = target_endpoint["label"]
             edge_http_requests[(source, target)] += value
-
-        for container in sorted(container_names):
-            sent_total = int(container_sent_totals.get(container, 0))
-            received_total = int(container_received_totals.get(container, 0))
-            active_total = int(len(container_active_totals.get(container, set())))
-            persistent_total = int(len(container_persistent_totals.get(container, set())))
-            lines.append(
-                'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s",mainstat="%s",secondarystat="%s",detail__sent_packets="%s",detail__received_packets="%s",detail__active_connections="%s",detail__persistent_connections="%s"} 25'
-                % (
-                    escape_label(container),
-                    escape_label(container),
-                    escape_label(NETWORK_NAME),
-                    sent_total + received_total,
-                    active_total,
-                    sent_total,
-                    received_total,
-                    active_total,
-                    persistent_total,
-                )
-            )
 
         for (source, target, src_ip, src_port, dst_ip, dst_port), value in sorted(logical_flows.items(), key=lambda item: item[1], reverse=True)[:FLOW_LIMIT]:
             edge_id = f"{source}->{target}"
