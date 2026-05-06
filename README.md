@@ -13,6 +13,8 @@ O projeto sobe os seguintes serviços:
 - PostgreSQL com criação padrão via variáveis de ambiente.
 - Grafana com Loki/Promtail para logs de containers.
 - Prometheus com cAdvisor para pacotes e tráfego de rede dos containers.
+- Exporter da rede `debug` para filtrar métricas apenas por containers conectados nessa rede.
+- Captura de pacotes com tcpdump para visualizar origem, destino, protocolo e portas no Grafana.
 
 ## Arquitetura
 
@@ -68,6 +70,9 @@ Variáveis disponíveis:
 - GRAFANA_ADMIN_USER: usuário administrador do Grafana.
 - GRAFANA_ADMIN_PASSWORD: senha do administrador do Grafana.
 - GRAFANA_ROOT_URL: URL pública do Grafana quando acessado via Nginx.
+- DEBUG_NETWORK_SUBNET: subnet usada ao criar a rede externa interna `debug` no `setup.sh`.
+- PACKET_CAPTURE_INTERFACE: interface usada pela captura de pacotes.
+- PACKET_CAPTURE_FILTER: filtro tcpdump usado pela captura de pacotes.
 
 ## Como subir a stack
 
@@ -116,7 +121,9 @@ O Grafana já sobe com dois datasources provisionados:
 - Loki: logs dos containers Docker coletados pelo Promtail.
 - Prometheus: métricas do cAdvisor, incluindo pacotes e tráfego de rede por container.
 
-O dashboard `Container Debug` é provisionado automaticamente com painéis de logs, pacotes de rede e throughput dos containers.
+O dashboard `Container Debug` é provisionado automaticamente com um card de containers da rede `debug` e com painéis de logs, pacotes de rede e throughput apenas dos containers conectados na rede `debug`, ocultando os containers internos `debug_*` usados pelo próprio monitoramento. Use o seletor `debug_container` no topo do dashboard para escolher quais containers quer monitorar.
+
+O dashboard `Container Packet Trace` mostra grafos de fluxo origem -> destino, top fluxos dos ultimos 5 minutos e tambem mantem o stream bruto capturado pelo container `debug_packet_capture`. O filtro padrao ignora o trafego da rede `debug` e portas de monitoramento para evitar que Grafana, Loki, Promtail, Prometheus e cAdvisor dominem a visualizacao. Esse dashboard complementa o cAdvisor: o cAdvisor mostra volume por container; o tcpdump mostra o trafego observado no host.
 
 ### Criar usuários de aplicação
 

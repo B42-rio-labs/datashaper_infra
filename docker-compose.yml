@@ -37,7 +37,7 @@ services:
       retries: 5
     networks:
       - nginx
-
+      - debug
 
   postgres:
     image: postgres:16-alpine
@@ -89,9 +89,11 @@ services:
       - debug
 
   promtail:
-    image: grafana/promtail:2.9.8
+    image: grafana/promtail:latest
     container_name: debug_promtail
     restart: unless-stopped
+    environment:
+      DOCKER_API_VERSION: "1.44"
     command: -config.file=/etc/promtail/config.yml
     volumes:
       - ./monitoring/promtail/config.yml:/etc/promtail/config.yml:ro
@@ -101,6 +103,20 @@ services:
       - debug
     depends_on:
       - loki
+
+  packet_capture:
+    image: nicolaka/netshoot:latest
+    container_name: debug_packet_capture
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    environment:
+      PACKET_CAPTURE_INTERFACE: ${PACKET_CAPTURE_INTERFACE:-any}
+      PACKET_CAPTURE_FILTER: ${PACKET_CAPTURE_FILTER:-((tcp or udp or icmp) and not net 172.24.0.0/16 and not port 3000 and not port 3100 and not port 9090 and not port 9080 and not port 8080)}
+    command: >
+      sh -c 'tcpdump -i "$${PACKET_CAPTURE_INTERFACE}" -nn -tttt -l "$${PACKET_CAPTURE_FILTER}"'
 
   prometheus:
     image: prom/prometheus:latest
@@ -116,6 +132,21 @@ services:
       - debug
     depends_on:
       - cadvisor
+      - network_exporter
+
+  network_exporter:
+    image: python:3.13-alpine
+    container_name: debug_network_exporter
+    restart: unless-stopped
+    environment:
+      DEBUG_NETWORK_NAME: debug
+      NETWORK_EXPORTER_PORT: 9108
+    command: python /opt/network-exporter/exporter.py
+    volumes:
+      - ./monitoring/network-exporter/exporter.py:/opt/network-exporter/exporter.py:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - debug
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:latest

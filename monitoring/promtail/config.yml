@@ -15,9 +15,18 @@ scrape_configs:
         refresh_interval: 10s
     relabel_configs:
       - source_labels:
+          - __meta_docker_network_name
+          - __meta_docker_container_name
+        separator: ;
+        regex: debug;/.+|host;/debug_packet_capture
+        action: keep
+      - source_labels:
           - __meta_docker_container_name
         regex: /(.+)
         target_label: container
+      - source_labels:
+          - __meta_docker_network_name
+        target_label: docker_network
       - source_labels:
           - __meta_docker_container_label_com_docker_compose_project
         target_label: compose_project
@@ -27,3 +36,34 @@ scrape_configs:
       - source_labels:
           - __meta_docker_container_log_stream
         target_label: stream
+    pipeline_stages:
+      - drop:
+          older_than: 24h
+          drop_counter_reason: old_docker_log
+      - match:
+          selector: '{container="nginx_proxy"}'
+          stages:
+            - json:
+                expressions:
+                  event:
+                  method:
+                  uri:
+                  status:
+                  upstream_status:
+                  upstream_addr:
+                  host:
+                  request_body:
+            - labels:
+                event:
+                method:
+                status:
+                upstream_status:
+                upstream_addr:
+                host:
+      - regex:
+          expression: 'IP (?P<src_ip>[0-9]+(?:\.[0-9]+){3})(?:\.(?P<src_port>[0-9]+))? > (?P<dst_ip>[0-9]+(?:\.[0-9]+){3})(?:\.(?P<dst_port>[0-9]+))?: (?P<packet_summary>.*) length (?P<packet_bytes>[0-9]+).*'
+      - labels:
+          src_ip:
+          dst_ip:
+          src_port:
+          dst_port:

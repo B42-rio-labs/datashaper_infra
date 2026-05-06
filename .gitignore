@@ -1,4 +1,4 @@
 .env
 node_modules
 postgres_data
-
+__pycache__/
