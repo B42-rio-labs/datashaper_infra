@@ -129,71 +129,11 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "docker_container_graph_node_info",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(sum by (container) (docker_container_packet_sent_packets{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
+          "expr": "label_join(label_replace(label_replace(topk(50, sum by (sender, receiver, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_direction_packets{sender=~\"${flow_source:regex}\", receiver=~\"${flow_target:regex}\"}[30s]))), \"source\", \"$1\", \"sender\", \"(.*)\"), \"target\", \"$1\", \"receiver\", \"(.*)\"), \"id\", \"->\", \"source\", \"target\")",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(sum by (container) (docker_container_packet_received_packets{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(sum by (container) (docker_container_connection_active_count{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "label_replace(sum by (container) (docker_container_connection_persistent_count{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max_over_time(docker_container_communication_edge_packets[$__range])",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "F"
         }
       ],
       "title": "Container and External Flow Graph",
@@ -202,13 +142,6 @@
           "id": "labelsToFields",
           "options": {
             "mode": "columns"
-          }
-        },
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "id",
-            "mode": "outerTabular"
           }
         },
         {
@@ -222,22 +155,16 @@
             },
             "indexByName": {
               "id": 0,
-              "title": 1,
-              "subtitle": 2,
-              "source": 3,
-              "target": 4,
-              "Value": 5,
-              "Value #B": 6,
-              "Value #C": 7,
-              "Value #D": 8,
-              "Value #E": 9
+              "source": 1,
+              "target": 2,
+              "src_ip": 3,
+              "src_port": 4,
+              "dst_ip": 5,
+              "dst_port": 6,
+              "Value": 7
             },
             "renameByName": {
-              "Value": "mainstat",
-              "Value #B": "detail__sent_packets",
-              "Value #C": "detail__received_packets",
-              "Value #D": "detail__active_connections",
-              "Value #E": "detail__persistent_connections"
+              "Value": "mainstat"
             }
           }
         }
