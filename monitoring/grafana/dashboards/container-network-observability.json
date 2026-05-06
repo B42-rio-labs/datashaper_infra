@@ -129,7 +129,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max_over_time(docker_container_communication_edge_packets[$__range])",
+          "expr": "docker_container_graph_node_info",
           "format": "table",
           "instant": true,
           "range": false,
@@ -141,7 +141,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max_over_time(docker_container_communication_edge_http_requests[$__range])",
+          "expr": "label_replace(sum by (container) (docker_container_packet_sent_packets{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
           "format": "table",
           "instant": true,
           "range": false,
@@ -153,11 +153,47 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "max_over_time(docker_container_communication_edge_tcp_connections[$__range])",
+          "expr": "label_replace(sum by (container) (docker_container_packet_received_packets{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(sum by (container) (docker_container_connection_active_count{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "label_replace(sum by (container) (docker_container_connection_persistent_count{container=~\"${debug_container:regex}\"}), \"id\", \"$1\", \"container\", \"(.*)\")",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time(docker_container_communication_edge_packets[$__range])",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "F"
         }
       ],
       "title": "Container and External Flow Graph",
@@ -186,16 +222,22 @@
             },
             "indexByName": {
               "id": 0,
-              "source": 1,
-              "target": 2,
-              "Value": 3,
-              "Value #B": 4,
-              "Value #C": 5
+              "title": 1,
+              "subtitle": 2,
+              "source": 3,
+              "target": 4,
+              "Value": 5,
+              "Value #B": 6,
+              "Value #C": 7,
+              "Value #D": 8,
+              "Value #E": 9
             },
             "renameByName": {
               "Value": "mainstat",
-              "Value #B": "detail__http_requests",
-              "Value #C": "detail__tcp_connections"
+              "Value #B": "detail__sent_packets",
+              "Value #C": "detail__received_packets",
+              "Value #D": "detail__active_connections",
+              "Value #E": "detail__persistent_connections"
             }
           }
         }
@@ -228,80 +270,8 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 14
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (container) (docker_container_packet_sent_packets{container=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{container}} sent packets",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (container) (docker_container_packet_received_packets{container=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{container}} received packets",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Packet Counts by Container",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
         "y": 14
       },
       "id": 4,
@@ -348,144 +318,6 @@
     },
     {
       "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 20
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 22
-      },
-      "id": 5,
-      "options": {
-        "displayMode": "gradient",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "left",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "topk(15, sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s])))",
-          "legendFormat": "{{source}} -> {{target}} ({{src_ip}}:{{src_port}} -> {{dst_ip}}:{{dst_port}})",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "Top Packet Counts by Flow",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 22
-      },
-      "id": 6,
-      "options": {
-        "displayMode": "gradient",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "left",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "topk(15, sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s])))",
-          "legendFormat": "{{source}} -> {{target}} ({{src_ip}}:{{src_port}} -> {{dst_ip}}:{{dst_port}})",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "Top Packet Flows by Current Range",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
         "type": "loki",
         "uid": "Loki"
       },
@@ -493,7 +325,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 22
       },
       "id": 7,
       "options": {
@@ -529,7 +361,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 22
       },
       "id": 8,
       "options": {
