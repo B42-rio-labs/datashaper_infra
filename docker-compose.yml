@@ -56,6 +56,7 @@ services:
       retries: 5
     networks:
       - nginx
+      - debug
 
   grafana:
     image: grafana/grafana:latest
@@ -141,6 +142,7 @@ services:
     environment:
       DEBUG_NETWORK_NAME: debug
       NETWORK_EXPORTER_PORT: 9108
+      NETWORK_EXPORTER_FLOW_LOOKBACK: ${NETWORK_EXPORTER_FLOW_LOOKBACK:-30s}
     command: python /opt/network-exporter/exporter.py
     volumes:
       - ./monitoring/network-exporter/exporter.py:/opt/network-exporter/exporter.py:ro

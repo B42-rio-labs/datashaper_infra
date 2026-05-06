@@ -20,4 +20,6 @@ PACKET_CAPTURE_INTERFACE=any
 PACKET_CAPTURE_FILTER=((tcp or udp or icmp) and not net 172.24.0.0/16 and not port 3000 and not port 3100 and not port 9090 and not port 9080 and not port 8080)
 ```
 
-The default filter excludes the `debug` network subnet and common monitoring ports so Grafana/Loki/Promtail/Prometheus/cAdvisor traffic does not dominate the packet trace. Grafana dashboard queries expose a `debug_container` selector for choosing which containers to monitor, while flow panels can now show external services by IP and port. Use a narrower filter in production-like environments to avoid high log volume.
+The default filter excludes the `debug` network subnet and common monitoring ports so Grafana/Loki/Promtail/Prometheus/cAdvisor traffic does not dominate the packet trace. Grafana dashboard queries expose a `debug_container` selector for choosing which containers to monitor, while flow panels can now show external services by IP and port.
+
+Flow freshness is controlled by `NETWORK_EXPORTER_FLOW_LOOKBACK`, which defaults to `30s` in Compose. The exporter only treats a connection as active if it saw packets in that recent window. Loki still retains raw logs for `168h`, so the packets are stored much longer than the flow summary window. If you want flows to disappear faster, lower `NETWORK_EXPORTER_FLOW_LOOKBACK` further, but keep it above the Prometheus scrape interval (`15s`) or the graph will flicker.

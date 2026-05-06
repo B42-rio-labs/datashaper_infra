@@ -114,13 +114,8 @@
       },
       "id": 2,
       "options": {
-        "edges": {
-          "arrows": true
-        },
-        "nodes": {
-          "arcSections": [],
-          "mainStatUnit": "short"
-        }
+        "showHeader": true,
+        "sortBy": []
       },
       "targets": [
         {
@@ -129,26 +124,14 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "docker_container_graph_node_info{id!~\"debug_.*\", id=~\"${debug_container:regex}\"}",
+          "expr": "sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (id, source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[$__range]))",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "B"
         }
       ],
-      "title": "Container and External Flow Graph",
+      "title": "Container and External Flows",
       "transformations": [
         {
           "id": "labelsToFields",
@@ -163,28 +146,24 @@
               "Time": true,
               "__name__": true,
               "instance": true,
-              "job": true,
-              "network": true
+              "job": true
             },
             "indexByName": {
-              "id": 0,
-              "title": 1,
-              "subtitle": 2,
-              "source": 3,
-              "target": 4,
-              "Value": 5,
-              "Value #A": 5,
-              "Value #B": 5
+              "source": 0,
+              "target": 1,
+              "src_ip": 2,
+              "src_port": 3,
+              "dst_ip": 4,
+              "dst_port": 5,
+              "Value": 6
             },
             "renameByName": {
-              "Value": "mainstat",
-              "Value #A": "mainstat",
-              "Value #B": "mainstat"
+              "Value": "packets"
             }
           }
         }
       ],
-      "type": "nodeGraph"
+      "type": "table"
     },
     {
       "datasource": {
@@ -394,13 +373,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "topk(15, sum by (source, target, src_ip, src_port, dst_ip, dst_port) (docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}))",
+          "expr": "topk(15, sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s])))",
           "legendFormat": "{{source}} -> {{target}} ({{src_ip}}:{{src_port}} -> {{dst_ip}}:{{dst_port}})",
           "queryType": "instant",
           "refId": "A"
         }
       ],
-      "title": "Top Packet Counts by Flow (5m)",
+      "title": "Top Packet Counts by Flow",
       "type": "bargauge"
     },
     {
@@ -459,13 +438,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "topk(15, count by (source, target) (docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}))",
-          "legendFormat": "{{source}} -> {{target}}",
+          "expr": "topk(15, sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s])))",
+          "legendFormat": "{{source}} -> {{target}} ({{src_ip}}:{{src_port}} -> {{dst_ip}}:{{dst_port}})",
           "queryType": "instant",
           "refId": "A"
         }
       ],
-      "title": "Top Connection Counts (5m)",
+      "title": "Top Packet Flows by Current Range",
       "type": "bargauge"
     },
     {
@@ -496,7 +475,7 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.remote_addr}} {{.method}} {{.uri}} host={{.host}} request_body={{.request_body}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.remote_addr}} {{.method}} {{.uri}} host={{.host}} error_code={{.error_code}} request_body={{.request_body}}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -532,7 +511,7 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} upstream_status={{.upstream_status}} request_time={{.request_time}} upstream_response_time={{.upstream_response_time}} upstream={{.upstream_addr}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} error_code={{.error_code}} upstream_status={{.upstream_status}} request_time={{.request_time}} upstream_response_time={{.upstream_response_time}} upstream={{.upstream_addr}} request_body={{.request_body}}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -572,7 +551,7 @@
           "query": "label_values(docker_container_network_info{network=\"debug\", name!~\"debug_.*\"}, name)",
           "refId": "PrometheusVariableQueryEditor-0"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
@@ -589,18 +568,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets, source)",
+        "definition": "query_result(topk(20, sum by (source) (max_over_time(docker_container_packet_flow_packets[30s]))))",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "flow_source",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets, source)",
+          "query": "query_result(topk(20, sum by (source) (max_over_time(docker_container_packet_flow_packets[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-source"
         },
         "refresh": 1,
-        "regex": "",
+        "regex": "/source=\"([^\"]+)\"/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -616,18 +595,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets, target)",
+        "definition": "query_result(topk(20, sum by (target) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\"}[30s]))))",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "flow_target",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets, target)",
+          "query": "query_result(topk(20, sum by (target) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-target"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/target=\"([^\"]+)\"/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -643,18 +622,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets, src_ip)",
+        "definition": "query_result(topk(20, sum by (src_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
         "hide": 2,
         "includeAll": true,
         "multi": true,
         "name": "flow_src_ip",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets, src_ip)",
+          "query": "query_result(topk(20, sum by (src_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-src-ip"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/src_ip=\"([^\"]+)\"/",
         "skipUrlSync": true,
         "sort": 1,
         "type": "query"
@@ -670,18 +649,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets, dst_ip)",
+        "definition": "query_result(topk(20, sum by (dst_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
         "hide": 2,
         "includeAll": true,
         "multi": true,
         "name": "flow_dst_ip",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets, dst_ip)",
+          "query": "query_result(topk(20, sum by (dst_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-dst-ip"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/dst_ip=\"([^\"]+)\"/",
         "skipUrlSync": true,
         "sort": 1,
         "type": "query"
