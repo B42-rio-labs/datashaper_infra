@@ -258,12 +258,13 @@
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
+        "prettifyLogMessage": true,
         "showCommonLabels": false,
         "showLabels": true,
         "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "wrapLogMessage": true,
+        "detailsMode": "sidebar"
       },
       "targets": [
         {
@@ -277,7 +278,8 @@
         }
       ],
       "title": "Selected Flow HTTP Requests",
-      "type": "logs"
+      "type": "logs",
+      "description": "Clique em uma linha do log para abrir os detalhes do request HTTP no painel lateral de detalhes."
     },
     {
       "datasource": {
@@ -294,7 +296,8 @@
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
+        "detailsMode": "sidebar",
+        "prettifyLogMessage": true,
         "showCommonLabels": false,
         "showLabels": true,
         "showTime": true,
@@ -307,13 +310,14 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} error_code={{.error_code}} upstream_status={{.upstream_status}} upstream={{.upstream_addr}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"}     !~ \"(?i)grafana\"                   | json     | line_format \"{{.time}} {{.method}} {{.uri}}\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
       "title": "Selected Flow HTTP Responses",
-      "type": "logs"
+      "type": "logs",
+      "description": "Clique em uma linha do log para abrir os detalhes da response HTTP no painel lateral de detalhes."
     }
   ],
   "refresh": "10s",
@@ -498,6 +502,6 @@
   "timezone": "browser",
   "title": "Container Network Observability",
   "uid": "container-network-observability",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
