@@ -49,6 +49,7 @@ scrape_configs:
                   method:
                   uri:
                   status:
+                  error_code:
                   upstream_status:
                   upstream_addr:
                   host:
@@ -57,6 +58,7 @@ scrape_configs:
                 event:
                 method:
                 status:
+                error_code:
                 upstream_status:
                 upstream_addr:
                 host:

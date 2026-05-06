@@ -129,26 +129,14 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "docker_container_graph_node_info{id!~\"debug_.*\", id=~\"${debug_container:regex}\"}",
-          "format": "table",
-          "instant": true,
-          "range": false,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (id, source, target, src_ip, dst_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[$__range]))",
+          "expr": "label_join(label_replace(label_replace(topk(50, sum by (sender, receiver, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_direction_packets{sender=~\"${flow_source:regex}\", receiver=~\"${flow_target:regex}\"}[30s]))), \"source\", \"$1\", \"sender\", \"(.*)\"), \"target\", \"$1\", \"receiver\", \"(.*)\"), \"id\", \"->\", \"source\", \"target\")",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "B"
         }
       ],
-      "title": "Container Flow Graph",
+      "title": "Container and External Flow Graph",
       "transformations": [
         {
           "id": "labelsToFields",
@@ -163,23 +151,20 @@
               "Time": true,
               "__name__": true,
               "instance": true,
-              "job": true,
-              "network": true
+              "job": true
             },
             "indexByName": {
               "id": 0,
-              "title": 1,
-              "subtitle": 2,
-              "source": 3,
-              "target": 4,
-              "Value": 5,
-              "Value #A": 5,
-              "Value #B": 5
+              "source": 1,
+              "target": 2,
+              "src_ip": 3,
+              "src_port": 4,
+              "dst_ip": 5,
+              "dst_port": 6,
+              "Value": 7
             },
             "renameByName": {
-              "Value": "mainstat",
-              "Value #A": "mainstat",
-              "Value #B": "mainstat"
+              "Value": "mainstat"
             }
           }
         }
@@ -206,86 +191,14 @@
               }
             ]
           },
-          "unit": "pps"
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 24,
         "x": 0,
-        "y": 14
-      },
-      "id": 3,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_receive_packets_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{name}} rx",
-          "range": true,
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "Prometheus"
-          },
-          "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_transmit_packets_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{name}} tx",
-          "range": true,
-          "refId": "B"
-        }
-      ],
-      "title": "Packet Rate by Container",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "Prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
         "y": 14
       },
       "id": 4,
@@ -310,8 +223,8 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_receive_bytes_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{name}} rx",
+          "expr": "sum by (container) (docker_container_connection_active_count{container=~\"${debug_container:regex}\"})",
+          "legendFormat": "{{container}} active connections",
           "range": true,
           "refId": "A"
         },
@@ -321,13 +234,13 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (name) (rate(container_network_transmit_bytes_total{name!=\"\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"}[5m]) * on (name) group_left(network) docker_container_network_info{network=\"debug\", name!~\"debug_.*\", name=~\"${debug_container:regex}\"})",
-          "legendFormat": "{{name}} tx",
+          "expr": "sum by (container) (docker_container_connection_persistent_count{container=~\"${debug_container:regex}\"})",
+          "legendFormat": "{{container}} persistent connections",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Throughput by Container",
+      "title": "Active and Persistent Connections by Container",
       "type": "timeseries"
     },
     {
@@ -335,158 +248,23 @@
         "type": "loki",
         "uid": "Loki"
       },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "continuous-GrYlRd"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 20
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 22
-      },
-      "id": 5,
-      "options": {
-        "displayMode": "gradient",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "left",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "Loki"
-          },
-          "expr": "topk(15, sum by (src_ip, dst_ip) (count_over_time({container=\"debug_packet_capture\", src_ip!=\"\", dst_ip!=\"\"}[5m])))",
-          "legendFormat": "{{src_ip}} -> {{dst_ip}}",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "Top Packet Flows (5m)",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "Loki"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 22
-      },
-      "id": 6,
-      "options": {
-        "displayMode": "gradient",
-        "maxVizHeight": 300,
-        "minVizHeight": 16,
-        "minVizWidth": 8,
-        "namePlacement": "left",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showUnfilled": true,
-        "sizing": "auto",
-        "valueMode": "color"
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "loki",
-            "uid": "Loki"
-          },
-          "expr": "sum by (status) (count_over_time({container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" [15m]))",
-          "legendFormat": "HTTP {{status}}",
-          "queryType": "instant",
-          "refId": "A"
-        }
-      ],
-      "title": "HTTP Status by Selected Container (15m)",
-      "type": "bargauge"
-    },
-    {
-      "datasource": {
-        "type": "loki",
-        "uid": "Loki"
-      },
       "gridPos": {
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 29
+        "y": 22
       },
       "id": 7,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
+        "prettifyLogMessage": true,
         "showCommonLabels": false,
         "showLabels": true,
         "showTime": true,
         "sortOrder": "Descending",
-        "wrapLogMessage": true
+        "wrapLogMessage": true,
+        "detailsMode": "sidebar"
       },
       "targets": [
         {
@@ -494,13 +272,14 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.remote_addr}} {{.method}} {{.uri}} host={{.host}} request_body={{.request_body}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.method}} {{.uri}}\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
       "title": "Selected Flow HTTP Requests",
-      "type": "logs"
+      "type": "logs",
+      "description": "Clique em uma linha do log para abrir os detalhes do request HTTP no painel lateral de detalhes."
     },
     {
       "datasource": {
@@ -511,13 +290,14 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 29
+        "y": 22
       },
       "id": 8,
       "options": {
         "dedupStrategy": "none",
         "enableLogDetails": true,
-        "prettifyLogMessage": false,
+        "detailsMode": "sidebar",
+        "prettifyLogMessage": true,
         "showCommonLabels": false,
         "showLabels": true,
         "showTime": true,
@@ -530,13 +310,14 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} upstream_status={{.upstream_status}} request_time={{.request_time}} upstream_response_time={{.upstream_response_time}} upstream={{.upstream_addr}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"}     !~ \"(?i)grafana\"                   | json     | line_format \"{{.time}} {{.method}} {{.uri}}\"",
           "queryType": "range",
           "refId": "A"
         }
       ],
       "title": "Selected Flow HTTP Responses",
-      "type": "logs"
+      "type": "logs",
+      "description": "Clique em uma linha do log para abrir os detalhes da response HTTP no painel lateral de detalhes."
     }
   ],
   "refresh": "10s",
@@ -570,7 +351,7 @@
           "query": "label_values(docker_container_network_info{network=\"debug\", name!~\"debug_.*\"}, name)",
           "refId": "PrometheusVariableQueryEditor-0"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
@@ -587,18 +368,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${debug_container:regex}\", target=~\"${debug_container:regex}\"}, source)",
+        "definition": "query_result(topk(20, sum by (source) (max_over_time(docker_container_packet_flow_packets[30s]))))",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "flow_source",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets{source=~\"${debug_container:regex}\", target=~\"${debug_container:regex}\"}, source)",
+          "query": "query_result(topk(20, sum by (source) (max_over_time(docker_container_packet_flow_packets[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-source"
         },
         "refresh": 1,
-        "regex": "",
+        "regex": "/source=\"([^\"]+)\"/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -614,18 +395,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${debug_container:regex}\"}, target)",
+        "definition": "query_result(topk(20, sum by (target) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\"}[30s]))))",
         "hide": 0,
         "includeAll": true,
         "multi": true,
         "name": "flow_target",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${debug_container:regex}\"}, target)",
+          "query": "query_result(topk(20, sum by (target) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-target"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/target=\"([^\"]+)\"/",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
@@ -641,18 +422,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}, src_ip)",
+        "definition": "query_result(topk(20, sum by (src_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
         "hide": 2,
         "includeAll": true,
         "multi": true,
         "name": "flow_src_ip",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}, src_ip)",
+          "query": "query_result(topk(20, sum by (src_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-src-ip"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/src_ip=\"([^\"]+)\"/",
         "skipUrlSync": true,
         "sort": 1,
         "type": "query"
@@ -668,18 +449,18 @@
           "type": "prometheus",
           "uid": "Prometheus"
         },
-        "definition": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}, dst_ip)",
+        "definition": "query_result(topk(20, sum by (dst_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
         "hide": 2,
         "includeAll": true,
         "multi": true,
         "name": "flow_dst_ip",
         "options": [],
         "query": {
-          "query": "label_values(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}, dst_ip)",
+          "query": "query_result(topk(20, sum by (dst_ip) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))))",
           "refId": "PrometheusVariableQueryEditor-flow-dst-ip"
         },
-        "refresh": 1,
-        "regex": "",
+        "refresh": 2,
+        "regex": "/dst_ip=\"([^\"]+)\"/",
         "skipUrlSync": true,
         "sort": 1,
         "type": "query"
@@ -721,6 +502,6 @@
   "timezone": "browser",
   "title": "Container Network Observability",
   "uid": "container-network-observability",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }
