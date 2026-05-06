@@ -129,11 +129,35 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "label_join(label_replace(label_replace(topk(50, sum by (sender, receiver, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_direction_packets{sender=~\"${flow_source:regex}\", receiver=~\"${flow_target:regex}\"}[30s]))), \"source\", \"$1\", \"sender\", \"(.*)\"), \"target\", \"$1\", \"receiver\", \"(.*)\"), \"id\", \"->\", \"source\", \"target\")",
+          "expr": "max_over_time(docker_container_communication_edge_packets[$__range])",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time(docker_container_communication_edge_http_requests[$__range])",
           "format": "table",
           "instant": true,
           "range": false,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "Prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max_over_time(docker_container_communication_edge_tcp_connections[$__range])",
+          "format": "table",
+          "instant": true,
+          "range": false,
+          "refId": "C"
         }
       ],
       "title": "Container and External Flow Graph",
@@ -142,6 +166,13 @@
           "id": "labelsToFields",
           "options": {
             "mode": "columns"
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "id",
+            "mode": "outerTabular"
           }
         },
         {
@@ -157,14 +188,14 @@
               "id": 0,
               "source": 1,
               "target": 2,
-              "src_ip": 3,
-              "src_port": 4,
-              "dst_ip": 5,
-              "dst_port": 6,
-              "Value": 7
+              "Value": 3,
+              "Value #B": 4,
+              "Value #C": 5
             },
             "renameByName": {
-              "Value": "mainstat"
+              "Value": "mainstat",
+              "Value #B": "detail__http_requests",
+              "Value #C": "detail__tcp_connections"
             }
           }
         }
@@ -481,7 +512,7 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.remote_addr}} {{.method}} {{.uri}} host={{.host}} error_code={{.error_code}} request_body={{.request_body}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} {{.method}} {{.uri}}\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -517,7 +548,7 @@
             "type": "loki",
             "uid": "Loki"
           },
-          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} error_code={{.error_code}} upstream_status={{.upstream_status}} request_time={{.request_time}} upstream_response_time={{.upstream_response_time}} upstream={{.upstream_addr}} request_body={{.request_body}}\"",
+          "expr": "{container=\"nginx_proxy\", event=\"nginx_access\", upstream_addr=~\"${flow_dst_ip:raw}(:[0-9]+)?\"} | json | uri !~ \"^/grafana(/|$)\" | line_format \"{{.time}} status={{.status}} error_code={{.error_code}} upstream_status={{.upstream_status}} upstream={{.upstream_addr}}\"",
           "queryType": "range",
           "refId": "A"
         }

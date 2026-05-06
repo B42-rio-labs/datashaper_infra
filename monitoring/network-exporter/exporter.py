@@ -94,6 +94,31 @@ def endpoint_label(name: str, ip: str, port: str) -> str:
     return ip
 
 
+def upstream_ip(value: str) -> str:
+    if not value:
+        return ""
+    first = value.split(",", 1)[0].strip()
+    host = first.rsplit(":", 1)[0] if ":" in first else first
+    return ipv4_without_prefix(host)
+
+
+def gateway_ips() -> set[str]:
+    gateways = set()
+    for network in docker_get("/networks"):
+        network_name = network.get("Name", "")
+        if not network_name:
+            continue
+        try:
+            details = docker_get(f"/networks/{network_name}")
+        except Exception:
+            continue
+        for config in (details.get("IPAM", {}).get("Config", []) or []):
+            gateway = ipv4_without_prefix(config.get("Gateway", ""))
+            if gateway:
+                gateways.add(gateway)
+    return gateways
+
+
 def resolve_endpoint(ip: str, port: str, ip_to_name: dict[str, str]) -> dict[str, str]:
     name = ip_to_name.get(ip, "")
     return {
@@ -124,6 +149,7 @@ def logical_direction(src_name: str, dst_name: str, src_port: str, dst_port: str
 def collect_metrics() -> str:
     network = docker_get(f"/networks/{NETWORK_NAME}")
     containers = network.get("Containers") or {}
+    blocked_gateway_ips = gateway_ips()
     container_names = {}
     ip_to_name = {}
     service_ports = {}
@@ -144,6 +170,12 @@ def collect_metrics() -> str:
         "# TYPE docker_container_packet_sent_packets gauge",
         "# HELP docker_container_packet_received_packets Packets received by each container from each observed peer over the configured lookback.",
         "# TYPE docker_container_packet_received_packets gauge",
+        "# HELP docker_container_communication_edge_packets Communication edges between containers and external peers over the configured lookback.",
+        "# TYPE docker_container_communication_edge_packets gauge",
+        "# HELP docker_container_communication_edge_http_requests HTTP requests observed for an edge over the configured lookback.",
+        "# TYPE docker_container_communication_edge_http_requests gauge",
+        "# HELP docker_container_communication_edge_tcp_connections Distinct TCP 5-tuples observed for an edge over the configured lookback.",
+        "# TYPE docker_container_communication_edge_tcp_connections gauge",
         "# HELP docker_container_connection_active_count Distinct observed packet 5-tuples per container and peer over the configured lookback.",
         "# TYPE docker_container_connection_active_count gauge",
         "# HELP docker_container_connection_persistent_count Distinct observed packet 5-tuples seen more than once per container and peer over the configured lookback.",
@@ -188,10 +220,18 @@ def collect_metrics() -> str:
     ) % (FLOW_LIMIT, FLOW_LOOKBACK)
     try:
         payload = http_get_json(f"{LOKI_URL}/loki/api/v1/query?{urllib.parse.urlencode({'query': query})}")
+        http_query = (
+            'sum by (upstream_addr) (count_over_time({container="nginx_proxy", event="nginx_access", upstream_addr!=""}[%s]))'
+            % FLOW_LOOKBACK
+        )
+        http_payload = http_get_json(f"{LOKI_URL}/loki/api/v1/query?{urllib.parse.urlencode({'query': http_query})}")
         logical_flows = defaultdict(float)
         directional_flows = defaultdict(float)
         sent_packets = defaultdict(float)
         received_packets = defaultdict(float)
+        edge_packets = defaultdict(float)
+        edge_tcp_connections = defaultdict(set)
+        edge_http_requests = defaultdict(float)
         active_connections = defaultdict(set)
         persistent_connections = defaultdict(set)
         for result in payload.get("data", {}).get("result", []):
@@ -201,6 +241,8 @@ def collect_metrics() -> str:
             src_port = metric.get("src_port", "")
             dst_ip = metric.get("dst_ip", "")
             dst_port = metric.get("dst_port", "")
+            if src_ip in blocked_gateway_ips or dst_ip in blocked_gateway_ips:
+                continue
             src_endpoint = resolve_endpoint(src_ip, src_port, ip_to_name)
             dst_endpoint = resolve_endpoint(dst_ip, dst_port, ip_to_name)
             if src_endpoint["kind"] == "external":
@@ -248,6 +290,21 @@ def collect_metrics() -> str:
             logical_flows[flow_key] += value
             directional_key = (sender, receiver, src_ip, src_port, dst_ip, dst_port)
             directional_flows[directional_key] += value
+            edge_key = (source, target)
+            edge_packets[edge_key] += value
+            edge_tcp_connections[edge_key].add(flow_key)
+
+        for result in http_payload.get("data", {}).get("result", []):
+            metric = result.get("metric", {})
+            upstream_addr = metric.get("upstream_addr", "")
+            value = float(result.get("value", [None, "0"])[1])
+            target_ip = upstream_ip(upstream_addr)
+            if not target_ip:
+                continue
+            target_endpoint = resolve_endpoint(target_ip, "", ip_to_name)
+            source = "nginx_proxy"
+            target = target_endpoint["label"]
+            edge_http_requests[(source, target)] += value
 
         for (source, target, src_ip, src_port, dst_ip, dst_port), value in sorted(logical_flows.items(), key=lambda item: item[1], reverse=True)[:FLOW_LIMIT]:
             edge_id = f"{source}->{target}"
@@ -262,6 +319,45 @@ def collect_metrics() -> str:
                     escape_label(dst_ip),
                     escape_label(dst_port),
                     int(value),
+                )
+            )
+
+        edge_keys = set(edge_packets) | set(edge_http_requests)
+        ordered_edges = sorted(
+            edge_keys,
+            key=lambda edge: edge_packets.get(edge, 0) + edge_http_requests.get(edge, 0),
+            reverse=True,
+        )[:FLOW_LIMIT]
+        for source, target in ordered_edges:
+            packet_count = edge_packets.get((source, target), 0)
+            http_requests = edge_http_requests.get((source, target), 0)
+            tcp_connections = len(edge_tcp_connections.get((source, target), set()))
+            edge_id = f"{source}->{target}"
+            lines.append(
+                'docker_container_communication_edge_packets{id="%s",source="%s",target="%s"} %s'
+                % (
+                    escape_label(edge_id),
+                    escape_label(source),
+                    escape_label(target),
+                    int(packet_count + http_requests),
+                )
+            )
+            lines.append(
+                'docker_container_communication_edge_http_requests{id="%s",source="%s",target="%s"} %s'
+                % (
+                    escape_label(edge_id),
+                    escape_label(source),
+                    escape_label(target),
+                    int(http_requests),
+                )
+            )
+            lines.append(
+                'docker_container_communication_edge_tcp_connections{id="%s",source="%s",target="%s"} %s'
+                % (
+                    escape_label(edge_id),
+                    escape_label(source),
+                    escape_label(target),
+                    tcp_connections,
                 )
             )
 
