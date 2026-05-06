@@ -114,8 +114,13 @@
       },
       "id": 2,
       "options": {
-        "showHeader": true,
-        "sortBy": []
+        "edges": {
+          "arrows": true
+        },
+        "nodes": {
+          "arcSections": [],
+          "mainStatUnit": "short"
+        }
       },
       "targets": [
         {
@@ -124,14 +129,14 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (source, target, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_flow_packets{source=~\"${flow_source:regex}\", target=~\"${flow_target:regex}\"}[30s]))",
+          "expr": "label_join(label_replace(label_replace(topk(50, sum by (sender, receiver, src_ip, src_port, dst_ip, dst_port) (max_over_time(docker_container_packet_direction_packets{sender=~\"${flow_source:regex}\", receiver=~\"${flow_target:regex}\"}[30s]))), \"source\", \"$1\", \"sender\", \"(.*)\"), \"target\", \"$1\", \"receiver\", \"(.*)\"), \"id\", \"->\", \"source\", \"target\")",
           "format": "table",
           "instant": true,
           "range": false,
-          "refId": "A"
+          "refId": "B"
         }
       ],
-      "title": "Container and External Flows",
+      "title": "Container and External Flow Graph",
       "transformations": [
         {
           "id": "labelsToFields",
@@ -149,21 +154,22 @@
               "job": true
             },
             "indexByName": {
-              "source": 0,
-              "target": 1,
-              "src_ip": 2,
-              "src_port": 3,
-              "dst_ip": 4,
-              "dst_port": 5,
-              "Value": 6
+              "id": 0,
+              "source": 1,
+              "target": 2,
+              "src_ip": 3,
+              "src_port": 4,
+              "dst_ip": 5,
+              "dst_port": 6,
+              "Value": 7
             },
             "renameByName": {
-              "Value": "packets"
+              "Value": "mainstat"
             }
           }
         }
       ],
-      "type": "table"
+      "type": "nodeGraph"
     },
     {
       "datasource": {

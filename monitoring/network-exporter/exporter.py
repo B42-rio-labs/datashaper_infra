@@ -161,7 +161,7 @@ def collect_metrics() -> str:
             % (escape_label(container_id), escape_label(name), escape_label(NETWORK_NAME), escape_label(ipv4))
         )
         lines.append(
-            'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s"} 1'
+            'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s"} 25'
             % (escape_label(name), escape_label(name), escape_label(NETWORK_NAME))
         )
         details = docker_get(f"/containers/{container_id}/json")
@@ -331,7 +331,7 @@ def collect_metrics() -> str:
 
         for node in sorted(external_nodes):
             lines.append(
-                'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s"} 1'
+                'docker_container_graph_node_info{id="%s",title="%s",subtitle="%s"} 25'
                 % (escape_label(node), escape_label(node), escape_label("external"))
             )
     except Exception as exc:
