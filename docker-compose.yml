@@ -18,7 +18,6 @@ services:
     depends_on:
       - rabbitmq
       - postgres
-      - grafana
 
   rabbitmq:
     image: rabbitmq:3-management-alpine

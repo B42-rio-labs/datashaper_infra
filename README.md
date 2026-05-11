@@ -84,16 +84,22 @@ sh setup.sh
 
 2. Crie e ajuste o arquivo .env.
 
-3. Suba os serviços.
+3. Suba os serviços essenciais.
 
 ```bash
-docker compose up -d
+make up
 ```
 
 4. Verifique os containers.
 
 ```bash
 docker compose ps
+```
+
+Para subir o stack de observabilidade/debug explicitamente:
+
+```bash
+make debug-up
 ```
 
 ## Acesso ao RabbitMQ
